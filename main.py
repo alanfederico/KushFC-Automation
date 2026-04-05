@@ -52,8 +52,8 @@ def create_carousel():
         return
 
     chunks = [matches[i:i + 5] for i in range(0, len(matches), 5)]
-    # הגדלת לוגו הליגה ל-140
-    liga_logo = get_image_from_url(LA_LIGA_LOGO_URL, size=(140, 140))
+    # הגדלת לוגו הליגה ל-180
+    liga_logo = get_image_from_url(LA_LIGA_LOGO_URL, size=(180, 180))
     
     for i, chunk in enumerate(chunks):
         img = Image.open(BG_PATH).convert("RGBA")
@@ -68,13 +68,23 @@ def create_carousel():
             font_name = font_score = font_date = ImageFont.load_default()
 
         if liga_logo:
-            # מיקום הלוגו המוגדל (מרכז ב-512, גובה 100)
-            overlay.paste(liga_logo, (512 - 70, 100), liga_logo)
+            # מיקום הלוגו המוגדל (מרכז ב-512, גובה 90)
+            overlay.paste(liga_logo, (512 - 90, 90), liga_logo)
 
-        y_pos = 350
+        # --- אלגוריתם למרכוס אנכי אוטומטי ---
+        # הגדרות המלבנים
         box_width = 880
         box_height = 140
         left_margin = (1024 - box_width) // 2 
+        y_gap = 25 # רווח בין מלבנים
+        
+        # חישוב הגובה הכולל של בלוק התוצאות (למשל 3 משחקים)
+        num_matches = len(chunk)
+        total_block_height = (num_matches * box_height) + ((num_matches - 1) * y_gap)
+        
+        # מרכוס הבלוק: מחצית הרקע (675) פחות מחצית גובה הבלוק
+        bg_height_center = 675 # (1350 / 2)
+        y_pos = bg_height_center - (total_block_height // 2)
         
         gradient_mask = create_gradient_mask((box_width, box_height), alpha_max=50)
         white_box = Image.new("RGBA", (box_width, box_height), (255, 255, 255, 255))
@@ -97,24 +107,18 @@ def create_carousel():
             match_date = datetime.strptime(m['utcDate'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y")
             
             center_x = 512
-            # שם קבוצת בית - מוזז שמאלה למניעת חפיפה
+            # נקודות העוגן המתוקנות
             draw_overlay.text((320, y_pos + 70), home_name, font=font_name, fill="white", anchor="mm")
-            
-            # תוצאה
             draw_overlay.text((center_x, y_pos + 60), score, font=font_score, fill="white", anchor="mm")
-            
-            # תאריך
             draw_overlay.text((center_x, y_pos + 115), match_date, font=font_date, fill="white", anchor="mm")
-            
-            # שם קבוצת חוץ - מוזז ימינה למניעת חפיפה
             draw_overlay.text((704, y_pos + 70), away_name, font=font_name, fill="white", anchor="mm")
             
-            y_pos += box_height + 25
+            y_pos += box_height + y_gap
             
         final_img = Image.alpha_composite(img, overlay).convert("RGB")
         filename = f"la_liga_post_{i+1}.jpg"
         final_img.save(filename)
-        print(f"✅ נוצר פוסט עם לוגו מוגדל ותאריך: {filename}")
+        print(f"✅ נוצר פוסט ממורכז עם לוגו מוגדל: {filename}")
 
 if __name__ == "__main__":
     create_carousel()
