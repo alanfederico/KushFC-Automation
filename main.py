@@ -1,58 +1,60 @@
 import requests
 import os
 from PIL import Image, ImageDraw, ImageFont
-from io import BytesIO
+from datetime import datetime
 
 # הגדרות
 API_KEY = os.getenv('FOOTBALL_API_KEY')
 BASE_URL = "https://api.football-data.org/v4/matches"
-FONT_PATH = "font.ttf" # וודא שהעלית קובץ כזה
 BG_PATH = "background.jpg"
+FONT_PATH = "font.ttf" # וודא שהעלית את קובץ הפונט שלך ל-GitHub
 
-def get_la_liga_matches():
+def get_la_liga_results():
     headers = {'X-Auth-Token': API_KEY}
-    # סינון לליגה הספרדית (PD) וטווח תאריכים (למשל השבוע האחרון)
-    params = {"competitions": "PD"} 
-    res = requests.get(BASE_URL, headers=headers, params=params)
-    return res.json().get('matches', []) if res.status_code == 200 else []
-
-def draw_match_row(draw, match, y_pos, font_main, font_score):
-    home = match['homeTeam']['shortName']
-    away = match['awayTeam']['shortName']
-    score = f"{match['score']['fullTime']['home']} - {match['score']['fullTime']['away']}"
-    
-    # מיקומים (לפי הרקע שלך - כדאי לכוונן)
-    draw.text((250, y_pos), home, font=font_main, fill="white", anchor="rm")
-    draw.text((512, y_pos), score, font=font_score, fill="white", anchor="mm")
-    draw.text((774, y_pos), away, font=font_main, fill="white", anchor="lm")
+    # שליחת בקשה למשחקים של היום/אתמול
+    try:
+        response = requests.get(BASE_URL, headers=headers)
+        if response.status_code == 200:
+            all_matches = response.json().get('matches', [])
+            # סינון לליגה הספרדית (ID: 2014)
+            return [m for m in all_matches if m['competition']['id'] == 2014]
+        return []
+    except:
+        return []
 
 def create_carousel():
-    matches = get_la_liga_matches()
+    matches = get_la_liga_results()
     if not matches:
-        print("No matches found.")
+        print("⚠️ לא נמצאו משחקים של הליגה הספרדית כרגע.")
         return
 
-    # חלוקה לקבוצות של 5
-    chunked_matches = [matches[i:i + 5] for i in range(0, len(matches), 5)]
+    # חלוקה ל-5 משחקים לעמוד
+    chunks = [matches[i:i + 5] for i in range(0, len(matches), 5)]
     
-    for page_index, chunk in enumerate(chunked_matches):
+    for i, chunk in enumerate(chunks):
         img = Image.open(BG_PATH)
         draw = ImageDraw.Draw(img)
         
-        # טעינת פונטים
+        # טעינת פונט (אם אין, משתמש בברירת מחדל)
         try:
-            f_main = ImageFont.truetype(FONT_PATH, 40)
-            f_score = ImageFont.truetype(FONT_PATH, 60)
+            font = ImageFont.truetype(FONT_PATH, 45)
         except:
-            f_main = f_score = ImageFont.load_default()
+            font = ImageFont.load_default()
 
-        y_start = 300 # להתחיל לצייר מגובה 300 פיקסלים
-        for match in chunk:
-            draw_match_row(draw, match, y_start, f_main, f_score)
-            y_start += 120 # רווח בין שורות
+        y_pos = 350
+        for m in chunk:
+            home = m['homeTeam']['shortName']
+            away = m['awayTeam']['shortName']
+            score = f"{m['score']['fullTime']['home']} - {m['score']['fullTime']['away']}"
             
-        img.save(f"kushfc_post_{page_index + 1}.jpg")
-        print(f"✅ Created page {page_index + 1}")
+            # כתיבת התוצאה במרכז
+            text = f"{home}   {score}   {away}"
+            draw.text((540, y_pos), text, font=font, fill="white", anchor="mm")
+            y_pos += 130 # רווח לשורה הבאה
+            
+        filename = f"results_page_{i+1}.jpg"
+        img.save(filename)
+        print(f"✅ נוצר עמוד: {filename}")
 
 if __name__ == "__main__":
     create_carousel()
