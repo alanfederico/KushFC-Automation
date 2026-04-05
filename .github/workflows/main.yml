@@ -25,8 +25,8 @@ jobs:
           FOOTBALL_API_KEY: ${{ secrets.FOOTBALL_API_KEY }}
         run: python main.py
 
-      - name: Upload Branded Images
+     - name: Upload Branded Images
         uses: actions/upload-artifact@v4
         with:
           name: KushFC-Final-Posts
-          path: "*.jpg" # זה יתפוס את כל תמונות ה-JPG שנוצרו
+          path: la_liga_post_*.jpg # זה יתפוס רק את הפוסטים המוכנים, לא את הרקע
