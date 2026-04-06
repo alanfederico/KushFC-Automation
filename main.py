@@ -11,7 +11,7 @@ BASE_URL = "https://api.football-data.org/v4/matches"
 BG_PATH = "background.jpg"
 FONT_PATH = "font.ttf"
 
-# רשימת הליגות מסודרת לפי העדפה שלך: ספרד, אנגליה, איטליה, גרמניה, צרפת
+# רשימת הליגות מסודרת: ספרד, אנגליה, איטליה, גרמניה, צרפת
 LEAGUES_ORDER = [
     {'id': 2014, 'code': 'PD',  'name': 'La Liga'},
     {'id': 2021, 'code': 'PL',  'name': 'Premier League'},
@@ -30,6 +30,7 @@ LEAGUE_LOGOS = {
 
 def get_recent_matches():
     headers = {'X-Auth-Token': API_KEY}
+    # תאריכים: אתמול והיום
     today = datetime.now().strftime('%Y-%m-%d')
     yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
     params = {'dateFrom': yesterday, 'dateTo': today}
@@ -64,16 +65,16 @@ def create_gradient_mask(size, alpha_max=50):
 def create_posts():
     all_matches = get_recent_matches()
     if not all_matches:
-        print("⚽ לא נמצאו משחקים מאתמול או מהיום.")
+        print("⚽ לא נמצאו משחקים.")
         return
 
-    file_counter = 1 # מונה כדי לשמור על סדר הקבצים
+    file_counter = 1
 
     for league in LEAGUES_ORDER:
+        # פילטר למשחקים שהסתיימו בליגה הספציפית
         league_matches = [m for m in all_matches if m['competition']['id'] == league['id'] and m['status'] == 'FINISHED']
         
         if not league_matches:
-            print(f"ℹ️ אין תוצאות ל-{league['name']}, מדלג...")
             continue
 
         chunks = [league_matches[i:i + 5] for i in range(0, len(league_matches), 5)]
@@ -112,20 +113,23 @@ def create_posts():
                 if a_img: overlay.paste(a_img, (left_m + box_width - 125, y_pos + 22), a_img)
                 
                 score = f"{m['score']['fullTime']['home']} - {m['score']['fullTime']['away']}"
-                date_str = datetime.strptime(m['utcDate'], "%Y-%m-%dT%H:%M:%SZ").strftime("%d/%m/%Y")
+                date_obj = datetime.strptime(m['utcDate'], "%Y-%m-%dT%H:%M:%SZ")
+                date_str = date_obj.strftime("%d/%m/%Y")
                 
-                draw.text((320, y_pos + 70), m['homeTeam']['shortName'], font=font_name, fill="white", anchor="mm")
+                # מנגנון קיצור שמות: אם השם ארוך מ-12 תווים, משתמש בשם הקצר
+                h_name = m['homeTeam']['name'] if len(m['homeTeam']['name']) <= 12 else m['homeTeam']['shortName']
+                a_name = m['awayTeam']['name'] if len(m['awayTeam']['name']) <= 12 else m['awayTeam']['shortName']
+                
+                draw.text((320, y_pos + 70), h_name, font=font_name, fill="white", anchor="mm")
                 draw.text((512, y_pos + 60), score, font=font_score, fill="white", anchor="mm")
                 draw.text((512, y_pos + 115), date_str, font=font_date, fill="white", anchor="mm")
-                draw.text((704, y_pos + 70), m['awayTeam']['shortName'], font=font_name, fill="white", anchor="mm")
+                draw.text((704, y_pos + 70), a_name, font=font_name, fill="white", anchor="mm")
                 
                 y_pos += box_height + y_gap
 
-            # שם הקובץ יכלול מספר סידורי כדי לשמור על הסדר: 01_PD, 02_PL וכו'
             filename = f"{file_counter:02d}_{league['code']}_{i+1}.jpg"
             final = Image.alpha_composite(img, overlay).convert("RGB")
             final.save(filename)
-            print(f"✅ נוצר פוסט: {filename}")
             file_counter += 1
 
 if __name__ == "__main__":
