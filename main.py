@@ -28,12 +28,21 @@ LEAGUE_LOGOS = {
     2015: 'https://crests.football-data.org/FL1.png'
 }
 
+# תיקון ידני לשמות קבוצות בעייתיים (כמו ליון)
+TEAM_NAME_OVERRIDES = {
+    'Olympique Lyonnais': 'Lyon',
+    'Paris Saint-Germain FC': 'PSG',
+    'Wolverhampton Wanderers FC': 'Wolves',
+    'Club Atlético de Madrid': 'Atleti',
+    'Borussia Dortmund': 'BVB'
+}
+
 def get_recent_matches():
     headers = {'X-Auth-Token': API_KEY}
-    # תאריכים: אתמול והיום
+    # תאריכים: שלושת הימים האחרונים
     today = datetime.now().strftime('%Y-%m-%d')
-    yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
-    params = {'dateFrom': yesterday, 'dateTo': today}
+    three_days_ago = (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d')
+    params = {'dateFrom': three_days_ago, 'dateTo': today}
     
     try:
         response = requests.get(BASE_URL, headers=headers, params=params)
@@ -61,6 +70,19 @@ def create_gradient_mask(size, alpha_max=50):
         opacity = int(alpha_max * (dist_from_edge / (center_width // 2))) if dist_from_edge < center_width // 2 else alpha_max
         gradient[:, x] = opacity
     return Image.fromarray(gradient, mode="L")
+
+def get_best_team_name(team_data):
+    full_name = team_data['name']
+    
+    # 1. בדוק אם יש תיקון ידני (כמו ליון)
+    if full_name in TEAM_NAME_OVERRIDES:
+        return TEAM_NAME_OVERRIDES[full_name]
+    
+    # 2. אם השם המלא ארוך מ-12 תווים, השתמש ב-shortName מה-API
+    if len(full_name) > 12:
+        return team_data.get('shortName', full_name)
+    
+    return full_name
 
 def create_posts():
     all_matches = get_recent_matches()
@@ -116,9 +138,9 @@ def create_posts():
                 date_obj = datetime.strptime(m['utcDate'], "%Y-%m-%dT%H:%M:%SZ")
                 date_str = date_obj.strftime("%d/%m/%Y")
                 
-                # מנגנון קיצור שמות: אם השם ארוך מ-12 תווים, משתמש בשם הקצר
-                h_name = m['homeTeam']['name'] if len(m['homeTeam']['name']) <= 12 else m['homeTeam']['shortName']
-                a_name = m['awayTeam']['name'] if len(m['awayTeam']['name']) <= 12 else m['awayTeam']['shortName']
+                # מנגנון קיצור שמות חכם (פונקציה חדשה)
+                h_name = get_best_team_name(m['homeTeam'])
+                a_name = get_best_team_name(m['awayTeam'])
                 
                 draw.text((320, y_pos + 70), h_name, font=font_name, fill="white", anchor="mm")
                 draw.text((512, y_pos + 60), score, font=font_score, fill="white", anchor="mm")
