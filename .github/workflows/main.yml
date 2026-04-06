@@ -1,10 +1,7 @@
 name: KushFC Daily Results
 
 on:
-  schedule:
-    - cron: '0 9 * * *' # ירוץ כל יום ב-9 בבוקר
-  workflow_dispatch: # כפתור להפעלה ידנית
-
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
