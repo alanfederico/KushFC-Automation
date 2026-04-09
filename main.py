@@ -35,7 +35,7 @@ TEAM_NAME_OVERRIDES = {
     'Olympique Lyonnais': 'Lyon',
     'Paris Saint-Germain FC': 'PSG',
     'Wolverhampton Wanderers FC': 'Wolves',
-    'Club Atlético de Madrid': 'Atleti',
+    'Club Atlético de Madrid': 'Atletico',
     'Borussia Dortmund': 'BVB',
     'Manchester City FC': 'Man City',
     'FC Bayern München': 'Bayern'
