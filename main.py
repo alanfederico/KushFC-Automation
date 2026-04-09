@@ -11,8 +11,9 @@ BASE_URL = "https://api.football-data.org/v4/matches"
 BG_PATH = "background.jpg"
 FONT_PATH = "font.ttf"
 
-# רשימת הליגות מסודרת: ספרד, אנגליה, איטליה, גרמניה, צרפת
+# רשימת הליגות מסודרת: ליגת האלופות, ספרד, אנגליה, איטליה, גרמניה, צרפת
 LEAGUES_ORDER = [
+    {'id': 2001, 'code': 'CL',  'name': 'Champions League'}, # הוספת ליגת האלופות
     {'id': 2014, 'code': 'PD',  'name': 'La Liga'},
     {'id': 2021, 'code': 'PL',  'name': 'Premier League'},
     {'id': 2019, 'code': 'SA',  'name': 'Serie A'},
@@ -21,6 +22,7 @@ LEAGUES_ORDER = [
 ]
 
 LEAGUE_LOGOS = {
+    2001: 'https://crests.football-data.org/CL.png', # לוגו ליגת האלופות
     2014: 'https://crests.football-data.org/PD.png',
     2021: 'https://crests.football-data.org/PL.png',
     2019: 'https://crests.football-data.org/SA.png',
@@ -28,13 +30,15 @@ LEAGUE_LOGOS = {
     2015: 'https://crests.football-data.org/FL1.png'
 }
 
-# תיקון ידני לשמות קבוצות בעייתיים (כמו ליון)
+# תיקון ידני לשמות קבוצות בעייתיים
 TEAM_NAME_OVERRIDES = {
     'Olympique Lyonnais': 'Lyon',
     'Paris Saint-Germain FC': 'PSG',
     'Wolverhampton Wanderers FC': 'Wolves',
     'Club Atlético de Madrid': 'Atleti',
-    'Borussia Dortmund': 'BVB'
+    'Borussia Dortmund': 'BVB',
+    'Manchester City FC': 'Man City',
+    'FC Bayern München': 'Bayern'
 }
 
 def get_recent_matches():
@@ -74,11 +78,9 @@ def create_gradient_mask(size, alpha_max=50):
 def get_best_team_name(team_data):
     full_name = team_data['name']
     
-    # 1. בדוק אם יש תיקון ידני (כמו ליון)
     if full_name in TEAM_NAME_OVERRIDES:
         return TEAM_NAME_OVERRIDES[full_name]
     
-    # 2. אם השם המלא ארוך מ-12 תווים, השתמש ב-shortName מה-API
     if len(full_name) > 12:
         return team_data.get('shortName', full_name)
     
@@ -100,7 +102,10 @@ def create_posts():
             continue
 
         chunks = [league_matches[i:i + 5] for i in range(0, len(league_matches), 5)]
-        liga_logo = get_image_from_url(LEAGUE_LOGOS[league['id']], size=(180, 180))
+        
+        # ניסיון להשיג לוגו ליגה
+        liga_logo_url = LEAGUE_LOGOS.get(league['id'])
+        liga_logo = get_image_from_url(liga_logo_url, size=(180, 180)) if liga_logo_url else None
 
         for i, chunk in enumerate(chunks):
             img = Image.open(BG_PATH).convert("RGBA")
@@ -138,7 +143,6 @@ def create_posts():
                 date_obj = datetime.strptime(m['utcDate'], "%Y-%m-%dT%H:%M:%SZ")
                 date_str = date_obj.strftime("%d/%m/%Y")
                 
-                # מנגנון קיצור שמות חכם (פונקציה חדשה)
                 h_name = get_best_team_name(m['homeTeam'])
                 a_name = get_best_team_name(m['awayTeam'])
                 
@@ -153,6 +157,7 @@ def create_posts():
             final = Image.alpha_composite(img, overlay).convert("RGB")
             final.save(filename)
             file_counter += 1
+            print(f"✅ נוצר קובץ: {filename}")
 
 if __name__ == "__main__":
     create_posts()
