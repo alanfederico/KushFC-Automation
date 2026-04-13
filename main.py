@@ -42,9 +42,10 @@ TEAM_NAME_OVERRIDES = {
 
 def get_recent_matches():
     headers = {'X-Auth-Token': API_KEY}
+    # חזרה להגדרות דינמיות: היום ויומיים אחורה (סה"כ 3 ימים)
     today = datetime.now().strftime('%Y-%m-%d')
-    start_date = "2026-04-10" # שינוי חד פעמי
-    params = {'dateFrom': start_date, 'dateTo': today}
+    three_days_ago = (datetime.now() - timedelta(days=2)).strftime('%Y-%m-%d')
+    params = {'dateFrom': three_days_ago, 'dateTo': today}
     
     try:
         response = requests.get(BASE_URL, headers=headers, params=params)
