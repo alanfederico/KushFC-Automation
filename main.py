@@ -81,11 +81,16 @@ def create_gradient_mask(size, alpha_max=50):
     return Image.fromarray(gradient, mode="L")
 
 def get_best_team_name(team_data):
-    full_name = team_data['name']
+    # שליפת השם בבטחה - אם אין 'name', נשתמש במחרוזת ריקה כדי למנוע קריסה
+    full_name = team_data.get('name') or ""
+    
     if full_name in TEAM_NAME_OVERRIDES:
         return TEAM_NAME_OVERRIDES[full_name]
+    
+    # עכשיו ה-len בטוח לשימוש כי full_name תמיד יהיה מחרוזת (אפילו אם היא ריקה)
     if len(full_name) > 12:
         return team_data.get('shortName', full_name)
+    
     return full_name
 
 def create_posts():
